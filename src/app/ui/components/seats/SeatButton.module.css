@@ -1,0 +1,42 @@
+.seatButton {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: 5px;
+  cursor: pointer;
+  background-color: #fff;
+  color: #fff;
+  font-weight: normal;
+  transition: background-color 0.3s, color 0.3s;
+  background-size: cover;
+  background-position: center;
+}
+
+.selected {
+  background-color: #c8e6c9;
+  color: #000;
+  font-weight: bold;
+}
+
+.repair {
+  background-image: url('/icons/seats/repair_seat.png'); /* Repair background image */
+}
+
+.occupied {
+  background-image: url('/icons/seats/seat_sold.png'); /* Occupied background image */
+}
+
+.locked {
+  background-image: url('/icons/seats/seat_lock.png'); /* Default background image */
+}
+
+.blocked {
+  background-image: url('/icons/seats/seat_blocked.png'); /* Default background image */
+}
+
+.notAllowed {
+  cursor: not-allowed;
+}
