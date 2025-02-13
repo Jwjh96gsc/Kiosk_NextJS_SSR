@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import ShowtimeCard from "@/app/ui/components/showtimes/ShowtimeCard";
 import { Showtime } from "@/app/types/showtimes/Showtime";
@@ -45,9 +45,9 @@ export default function Page() {
     },
   });
 
-  const handleDateChange = (date: string) => {
+  const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
-  };
+  }, [setSelectedDate]);
 
   const handleShowFilterChange = (showFilter: ShowFilter) => {
     setSelectedShowFilter(showFilter);
@@ -77,24 +77,24 @@ export default function Page() {
       setAvailableDates(Array.from(availableDatesSet).sort());
       handleShowFilterChange(responseData?.showFilters[0]);
     }
-  }, [responseData?.showtimes, responseData?.showFilters]);
+    handleDateChange(new Date().toISOString().split('T')[0]);
+  }, [responseData?.showtimes, responseData?.showFilters, handleDateChange]);
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       if (isTimerActive) refetch();
     }, 10000);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
   }, [isTimerActive, refetch]);
 
   useEffect(() => {
-    handleDateChange(new Date().toISOString().split('T')[0]);
     startTimer();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [startTimer]);
+
+  useEffect(() => {
     const handleVisibilityChange = () => setIsTimerActive(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
