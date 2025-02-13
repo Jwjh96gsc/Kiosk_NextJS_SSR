@@ -6,10 +6,3 @@ export interface SeatsResponse {
   seatTypes: SeatType[];
   hallSponsorImage: string;
 }
-
-export interface GetSeatsQueryResponse { 
-    data: SeatsResponse; 
-    error: any; 
-    isLoading: boolean;
-    refetch: any;
-}

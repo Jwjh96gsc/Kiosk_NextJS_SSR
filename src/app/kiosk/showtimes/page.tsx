@@ -10,7 +10,7 @@ import { selectedDateAtom } from "@/app/lib/atoms/selectedDateAtom";
 import ShowFilterSelector from "@/app/ui/components/showtimes/ShowFilterSelector";
 import { ShowFilter } from "@/app/types/showtimes/ShowFilter";
 import ShowtimePageSkeletons from "@/app/ui/components/showtimes/ShowtimePageSkeletons";
-import { GetShowtimesQueryResponse } from "@/app/types/showtimes/ShowtimeApi";
+import { ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
 
 const CATEGORY_ALL = "ALL";
 const CATEGORY_HALLTYPE = "HallType";
@@ -28,7 +28,7 @@ export default function Page() {
   now.setSeconds(0, 0);
   now.setMinutes(now.getMinutes() + 30);
 
-  const { data: responseData, error, isLoading, refetch } = useQuery({
+  const { data: responseData, error, isLoading, refetch } = useQuery<ShowtimesResponse, unknown>({
     queryKey: ['showtimes', selectedDate],
     queryFn: async () => {
       const res = await fetch('/api/showtimes', {
@@ -38,8 +38,12 @@ export default function Page() {
         },
         body: JSON.stringify({ locationId: '268', oprndate: selectedDate }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      return res.json() as Promise<ShowtimesResponse>;
     },
-  }) as GetShowtimesQueryResponse;
+  });
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
@@ -73,7 +77,6 @@ export default function Page() {
       setAvailableDates(Array.from(availableDatesSet).sort());
       handleShowFilterChange(responseData?.showFilters[0]);
     }
-    handleDateChange(new Date().toISOString().split('T')[0]);
   }, [responseData?.showtimes, responseData?.showFilters]);
 
   const startTimer = () => {
@@ -84,13 +87,14 @@ export default function Page() {
   };
 
   useEffect(() => {
-    startTimer();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isTimerActive, refetch]);
 
   useEffect(() => {
+    handleDateChange(new Date().toISOString().split('T')[0]);
+    startTimer();
     const handleVisibilityChange = () => setIsTimerActive(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);

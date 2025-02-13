@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Ticket } from '@/app/types/tickets/Ticket';
 import { Fab } from '@mui/material';
-import { useDispatch } from 'react-redux';
-import { updateTicketQuantity } from '@/app/lib/features/transaction/selectedTicketsSlice';
+import { useAtom } from 'jotai';
+import { selectedTicketsAtom, updateTicketQuantity } from '@/app/lib/atoms/selectedTicketsAtom';
 
 interface TicketSelectorProps {
   ticket: Ticket;
@@ -13,7 +13,7 @@ interface TicketSelectorProps {
 }
 
 export default function TicketSelector({ ticket, maxQuantity, selectedQuantity, onQuantityChange, totalSelectedQuantity }: TicketSelectorProps) {
-  const dispatch = useDispatch();
+  const [selectedTickets, setSelectedTickets] = useAtom(selectedTicketsAtom);
 
   // Calculate whether the + and - buttons should be disabled
   const isMinusDisabled = useMemo(() => selectedQuantity === 0, [selectedQuantity]);
@@ -24,7 +24,7 @@ export default function TicketSelector({ ticket, maxQuantity, selectedQuantity, 
     if (selectedQuantity > 0) {
       const newQuantity = selectedQuantity - 1;
       onQuantityChange(newQuantity);
-      dispatch(updateTicketQuantity({ ticketName: ticket.Name, quantity: newQuantity }));
+      setSelectedTickets(updateTicketQuantity(selectedTickets, { ticketName: ticket.Name, quantity: newQuantity }));
     }
   };
 
@@ -32,7 +32,7 @@ export default function TicketSelector({ ticket, maxQuantity, selectedQuantity, 
     if (totalSelectedQuantity < maxQuantity) {
       const newQuantity = selectedQuantity + 1;
       onQuantityChange(newQuantity);
-      dispatch(updateTicketQuantity({ ticketName: ticket.Name, quantity: newQuantity }));
+      setSelectedTickets(updateTicketQuantity(selectedTickets, { ticketName: ticket.Name, quantity: newQuantity }));
     }
   };
 

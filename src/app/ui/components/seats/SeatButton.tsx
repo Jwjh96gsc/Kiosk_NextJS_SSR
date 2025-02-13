@@ -1,10 +1,9 @@
 import React from "react";
 import { Seat } from "@/app/types/seats/Seat";
-import { useDispatch, useSelector } from "react-redux";
-import { toggleSeatSelection } from "@/app/lib/features/transaction/selectedSeatsSlice";
-import { RootState } from "@/app/lib/store";
 import styles from '@/app/ui/components/seats/SeatButton.module.css'
 import { SeatType } from "@/app/types/seats/SeatType";
+import { useAtom } from "jotai";
+import { selectedSeatsAtom, toggleSeatSelection } from "@/app/lib/atoms/selectedSeatsAtom";
 
 interface SeatButtonProps {
   seat: Seat;
@@ -12,16 +11,14 @@ interface SeatButtonProps {
 }
 
 export default function SeatButton({ seat, seatTypes }: SeatButtonProps) {
-  const dispatch = useDispatch();
+  const [selectedSeats, setSelectedSeats] = useAtom(selectedSeatsAtom);
 
-  const isSelected = useSelector((state: RootState) =>
-    state.selectedSeats.selectedSeats.some(
-      (s) => s.Row === seat.Row && s.Col === seat.Col
-    )
+  const isSelected = selectedSeats.some(
+    (s) => s.Row === seat.Row && s.Col === seat.Col
   );
 
   const handleClick = () => {
-    dispatch(toggleSeatSelection({ Row: seat.Row, Col: seat.Col }));
+    setSelectedSeats(toggleSeatSelection(selectedSeats, { Row: seat.Row, Col: seat.Col }));
   };
 
   // Determine the class based on the seat status
@@ -29,7 +26,7 @@ export default function SeatButton({ seat, seatTypes }: SeatButtonProps) {
   let backgroundImage = '';
   switch (seat.Status) {
     case "A": // Available
-      let seatType = seatTypes.find(x => x.Type === seat.Type);
+      const seatType = seatTypes.find(x => x.Type === seat.Type);
       backgroundImage = `/icons/seats/${seatType?.Name.split(' ').join('')}_seat.png`;
       break;
     case "D": // Damaged

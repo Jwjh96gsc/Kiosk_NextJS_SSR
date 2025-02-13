@@ -5,15 +5,16 @@ import { Showtime } from "@/app/types/showtimes/Showtime";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { selectedDateAtom, selectedSeatsAtom } from "@/app/lib/atoms/selectedDateAtom";
+import { selectedDateAtom } from "@/app/lib/atoms/selectedDateAtom";
 import SeatPageSkeletons from "@/app/ui/components/seats/SeatPageSkeletons";
-import ShowtimeCard from "@/app/ui/components/seats/ShowtimeCard";
+import ShowtimeButton from "@/app/ui/components/seats/ShowtimeButton";
 import TicketSectionSkeletons from "@/app/ui/components/tickets/TicketSectionSkeletons";
 import dynamic from "next/dynamic";
 import { Suspense, useMemo } from "react";
-import { GetShowtimesQueryResponse } from "@/app/types/showtimes/ShowtimeApi";
-import { GetSeatsQueryResponse } from "@/app/types/seats/SeatApi";
-import { GetTicketsQueryResponse } from "@/app/types/tickets/TicketApi";
+import { ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
+import { SeatsResponse } from "@/app/types/seats/SeatApi";
+import { TicketsResponse } from "@/app/types/tickets/TicketApi";
+import { selectedSeatsAtom } from "@/app/lib/atoms/selectedSeatsAtom";
 
 const SeatGrid = dynamic(() => import('@/app/ui/components/seats/SeatGrid'), {
   loading: () => <p>Loading seats...</p>,
@@ -33,12 +34,12 @@ export default function Page() {
 
 function SeatsComponent() {
   const [selectedDate] = useAtom(selectedDateAtom);
-  const [selectedSeats, setSelectedSeats] = useAtom(selectedSeatsAtom);
+  const [selectedSeats] = useAtom(selectedSeatsAtom);
   const params = useSearchParams();
   const id = params.get('id');
   const filmCode = params.get('filmCode');
   
-  const { data: showtimeResponseData } = useQuery({
+  const { data: showtimeResponseData } = useQuery<ShowtimesResponse, unknown>({
     queryKey: ['showtimes', selectedDate],
     queryFn: async () => {
       const res = await fetch('/api/showtimes', {
@@ -48,8 +49,12 @@ function SeatsComponent() {
         },
         body: JSON.stringify({ locationId: '268', oprndate: selectedDate }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      return res.json() as Promise<ShowtimesResponse>;
     },
-  }) as GetShowtimesQueryResponse;
+  });
 
   const selectedShowtime = useMemo(() => {
     if (!showtimeResponseData?.showtimes || !id) return undefined;
@@ -58,37 +63,58 @@ function SeatsComponent() {
       .find((showtime: Showtime) => showtime.id === id);
   }, [showtimeResponseData, id]);
 
-  const { data: seatResponseData, error: errorFromHallSeats, isLoading: isLoadingFromHallSeats } = useQuery({
+  const { data: seatResponseData, error: errorFromHallSeats, isLoading: isLoadingFromHallSeats } = useQuery<SeatsResponse, unknown>({
     queryKey: ['hallSeats', selectedShowtime?.id],
     queryFn: async () => {
-      if (!selectedShowtime) return;
+      if (!selectedShowtime) throw new Error("No selected showtime when getting seats."); 
       const res = await fetch('/api/seats', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ locationId: '268', hallid: selectedShowtime.hall, showdate: selectedShowtime.showDate.split('T')[0], showtime: new Date(selectedShowtime.showTime).toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }).replace(':', '') }),
+        },        
+        body: JSON.stringify({ 
+          locationId: '268', 
+          hallid: selectedShowtime.hall, 
+          showdate: selectedShowtime.showDate.split('T')[0], 
+          showtime: new Date(selectedShowtime.showTime)
+            .toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' })
+            .replace(':', ''),
+        }),
       });
-      return res.json();
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      return res.json() as Promise<SeatsResponse>;
     },
     enabled: !!selectedShowtime,
-  }) as GetSeatsQueryResponse;
+  });
 
-  const { data: ticketResponseData, error: errorFromTicketPricing, isLoading: isLoadingFromTicketPricing } = useQuery({
+  const { data: ticketResponseData, error: errorFromTicketPricing, isLoading: isLoadingFromTicketPricing } = useQuery<TicketsResponse, unknown>({
     queryKey: ['ticketPricing', selectedShowtime?.id],
     queryFn: async () => {
-      if (!selectedShowtime) return;
+      if (!selectedShowtime) throw new Error("No selected showtime when getting tickets."); 
       const res = await fetch('/api/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ locationId: '268', hallid: selectedShowtime.hall, filmid: selectedShowtime.filmCode, showdate: selectedShowtime.showDate.split('T')[0], showtime: new Date(selectedShowtime.showTime).toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }).replace(':', '') }),
+        },    
+        body: JSON.stringify({ 
+          locationId: '268', 
+          hallid: selectedShowtime.hall, 
+          filmid: selectedShowtime.filmCode,
+          showdate: selectedShowtime.showDate.split('T')[0], 
+          showtime: new Date(selectedShowtime.showTime)
+            .toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' })
+            .replace(':', ''),
+        }),
       });
-      return res.json();
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      return res.json() as Promise<TicketsResponse>;
     },
     enabled: !!selectedShowtime,
-  }) as GetTicketsQueryResponse;
+  });
 
   const selectedGroupedShowtimes = useMemo(() => {
     if (!showtimeResponseData?.showtimes || !filmCode) return undefined;
@@ -125,7 +151,7 @@ function SeatsComponent() {
         )}
 
         {selectedGroupedShowtimes ? (
-          <ShowtimeCard showtimes={selectedGroupedShowtimes} />
+          <ShowtimeButton showtimes={selectedGroupedShowtimes} />
         ) : (
           <p>No other showtimes were found.</p>
         )}
@@ -135,7 +161,7 @@ function SeatsComponent() {
         {isLoadingFromHallSeats ? (
           <SeatPageSkeletons />
         ) : errorFromHallSeats ? (
-          <p>Error: {errorFromHallSeats?.message || "An unexpected error occurred."}</p>
+          <p>Error: {errorFromHallSeats instanceof Error ? errorFromHallSeats?.message : "An unexpected error occurred."}</p>
         ) : seatResponseData?.seats ? (
           <div className="flex flex-col items-center mx-auto w-full">
             {seatResponseData.hallSponsorImage && (
@@ -171,7 +197,7 @@ function SeatsComponent() {
       {isLoadingFromTicketPricing ? (
         <TicketSectionSkeletons />
       ) : errorFromTicketPricing ? (
-        <p>Error: {errorFromTicketPricing?.message || "An unexpected error occurred."}</p>
+        <p>Error: {errorFromTicketPricing instanceof Error ? errorFromTicketPricing?.message : "An unexpected error occurred."}</p>
       ) : ticketResponseData ? (
         <div>
           <TicketSelectorList tickets={ticketResponseData.tickets} selectedSeatsCount={selectedSeats.length} />

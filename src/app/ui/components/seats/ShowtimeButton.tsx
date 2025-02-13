@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Showtime } from '@/app/types/showtimes/Showtime';
 
-export default function ShowtimeCard({ showtimes }: { showtimes: Showtime[] }) {
+export default function ShowtimeButton({ showtimes }: { showtimes: Showtime[] }) {
   return (
     <>
       <div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Showtime } from '@/app/types/showtimes/Showtime';
+import Image from "next/image";
 
 export default function ShowtimeCard({ showtimes, onShowtimeError }: { showtimes: Showtime[], onShowtimeError: (error: string) => void }) {
   const handleShowtimeClick = (e: React.MouseEvent, showtime: Showtime) => {
@@ -23,7 +24,7 @@ export default function ShowtimeCard({ showtimes, onShowtimeError }: { showtimes
   return (
     <div key={firstShowtime.filmCode} className="border border-gray-200 p-4 my-4 flex">
       {/* Left side: Image */}
-      <img
+      <Image
         src={firstShowtime.image || '/NotFound.jpg'}
         alt={`${firstShowtime.name} poster`}
         className="w-48 h-50 rounded-lg shadow-xl mr-8"
