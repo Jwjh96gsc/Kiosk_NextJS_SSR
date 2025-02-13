@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Roboto } from "next/font/google";
 import "@/app/ui/styles/globals.css";
-import StoreProvider from "./StoreProvider";
 import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,11 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.className}>
-        <StoreProvider>
-          <Providers>
-            {children}
-          </Providers>
-        </StoreProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
