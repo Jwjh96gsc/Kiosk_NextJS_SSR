@@ -10,7 +10,7 @@ import { selectedDateAtom } from "@/app/lib/atoms/selectedDateAtom";
 import ShowFilterSelector from "@/app/ui/components/showtimes/ShowFilterSelector";
 import { ShowFilter } from "@/app/types/showtimes/ShowFilter";
 import ShowtimePageSkeletons from "@/app/ui/components/showtimes/ShowtimePageSkeletons";
-import { ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
+import { ShowtimeApiResponse, ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
 
 const CATEGORY_ALL = "ALL";
 const CATEGORY_HALLTYPE = "HallType";
@@ -45,7 +45,7 @@ export default function Page() {
       const rawData = await res.json();
 
       // Transform the Showtimes array
-      const transformedShowtimes: Showtime[] = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
+      const transformedShowtimes: Showtime[] = rawData.data.Response.Body.Showtimes.map((showtime: ShowtimeApiResponse) => {
         // Parse the date string in local time
         const localDate = new Date(showtime.ShowDate);
         
@@ -146,7 +146,7 @@ export default function Page() {
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      // if (isTimerActive) refetch();
+      if (isTimerActive) refetch();
     }, 10000);
   }, [isTimerActive, refetch]);
 

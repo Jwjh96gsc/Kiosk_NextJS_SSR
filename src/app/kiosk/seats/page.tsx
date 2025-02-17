@@ -11,7 +11,7 @@ import ShowtimeButton from "@/app/ui/components/seats/ShowtimeButton";
 import TicketSectionSkeletons from "@/app/ui/components/tickets/TicketSectionSkeletons";
 import dynamic from "next/dynamic";
 import { Suspense, useMemo } from "react";
-import { ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
+import { ShowtimeApiResponse, ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
 import { SeatsResponse } from "@/app/types/seats/SeatApi";
 import { TicketsResponse } from "@/app/types/tickets/TicketApi";
 import { selectedSeatsAtom } from "@/app/lib/atoms/selectedSeatsAtom";
@@ -57,7 +57,7 @@ function SeatsComponent() {
       const rawData = await res.json();
 
       // Transform the Showtimes array
-      const transformedShowtimes: Showtime[] = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
+      const transformedShowtimes: Showtime[] = rawData.data.Response.Body.Showtimes.map((showtime: ShowtimeApiResponse) => {
         // Parse the date string in local time
         const localDate = new Date(showtime.ShowDate);
         
