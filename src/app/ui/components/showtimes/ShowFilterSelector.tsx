@@ -25,4 +25,7 @@ const ShowFilterSelector = React.memo(({ showFilters, selectedShowFilter, onFilt
   );
 });
 
+// ✅ Explicitly set displayName to pass ESLint
+ShowFilterSelector.displayName = "ShowFilterSelector";
+
 export default ShowFilterSelector;

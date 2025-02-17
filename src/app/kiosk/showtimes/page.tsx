@@ -45,7 +45,7 @@ export default function Page() {
       const rawData = await res.json();
 
       // Transform the Showtimes array
-      const transformedShowtimes = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
+      const transformedShowtimes: Showtime[] = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
         // Parse the date string in local time
         const localDate = new Date(showtime.ShowDate);
         
