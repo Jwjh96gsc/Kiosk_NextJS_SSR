@@ -41,7 +41,62 @@ export default function Page() {
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
       }
-      return res.json() as Promise<ShowtimesResponse>;
+      // Fetch the raw response
+      const rawData = await res.json();
+
+      // Transform the Showtimes array
+      const transformedShowtimes = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
+        // Parse the date string in local time
+        const localDate = new Date(showtime.ShowDate);
+        
+        // Extract date components in local time
+        const year = localDate.getFullYear();
+        const month = localDate.getMonth();
+        const day = localDate.getDate();
+
+        const [hours, minutes] = [
+          parseInt(showtime.ShowTime.slice(0, 2), 10),
+          parseInt(showtime.ShowTime.slice(2), 10),
+        ];
+
+        // Create a new date in local time
+        const showDateTime = new Date(year, month, day, hours, minutes, 0);
+        
+        // Convert to ISO string without timezone offset
+        const toLocalISOString = (date: Date) => {
+          const pad = (n: number) => n < 10 ? `0${n}` : n;
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        };
+        
+        return {
+          filmCode: showtime.FilmCode,
+          image: showtime.FilmPoster,
+          name: showtime.FilmName,
+          hall: showtime.HallCode,
+          hallType: showtime.HallType,
+          language: showtime.FilmLanguage,
+          showDate: toLocalISOString(localDate), // Local date without time
+          showTime: toLocalISOString(showDateTime), // Local date with time
+          showDateTime: toLocalISOString(showDateTime), // Local date with time
+          id: showtime.ShowId,
+        };
+      });
+
+      // Group showtimes by filmCode
+      const groupedShowtimes: Record<string, Showtime[]> = transformedShowtimes.reduce((acc: Record<string, Showtime[]>, showtime: Showtime) => {
+        if (!acc[showtime.filmCode]) {
+          acc[showtime.filmCode] = [];
+        }
+        acc[showtime.filmCode].push(showtime);
+        return acc;
+      }, {});
+      
+      // Transform the response to match ShowtimesResponse
+      const transformedData: ShowtimesResponse = {
+        showtimes: groupedShowtimes, // Grouped showtimes
+        showFilters: rawData.data.Response.Body.ShowFilters, // Map ShowFilters
+      };
+      return transformedData;
     },
   });
 
@@ -49,14 +104,15 @@ export default function Page() {
     setSelectedDate(date);
   }, [setSelectedDate]);
 
-  const handleShowFilterChange = (showFilter: ShowFilter) => {
-    setSelectedShowFilter(showFilter);
-  };
+  const handleShowFilterChange = useCallback((showFilter: ShowFilter) => {
+    setSelectedShowFilter(showFilter); // Replace merge logic with direct assignment
+  }, []);
 
   const isShowtimeInFilter = (showtime: Showtime): boolean => {
-    if (selectedShowFilter?.category === CATEGORY_ALL) return true;
-    if (selectedShowFilter?.category === CATEGORY_HALLTYPE) return showtime.hallType === selectedShowFilter.keyword;
-    if (selectedShowFilter?.category === CATEGORY_FILMTYPE) return showtime.name.includes(selectedShowFilter.keyword);
+    if (!selectedShowFilter) return true;
+    if (selectedShowFilter?.Category === CATEGORY_ALL) return true;
+    if (selectedShowFilter?.Category === CATEGORY_HALLTYPE) return showtime.hallType === selectedShowFilter.Keyword;
+    if (selectedShowFilter?.Category === CATEGORY_FILMTYPE) return showtime.name.includes(selectedShowFilter.Keyword);
     return false;
   };
 
@@ -67,23 +123,30 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (responseData?.showtimes && responseData?.showFilters) {
-      const availableDatesSet = new Set<string>();
-      Object.values(responseData.showtimes).forEach((showtimes: Showtime[]) => {
-        showtimes.forEach((showtime: Showtime) => {
-          availableDatesSet.add(showtime.showDateTime.split("T")[0]);
-        });
+    if (!responseData || !responseData.showtimes || !responseData.showFilters) return; // Ensure data is available
+    const availableDatesSet = new Set<string>();
+    Object.values(responseData.showtimes).forEach((showtimes: Showtime[]) => {
+      showtimes.forEach((showtime: Showtime) => {
+        availableDatesSet.add(showtime.showDateTime.split("T")[0]);
       });
-      setAvailableDates(Array.from(availableDatesSet).sort());
-      handleShowFilterChange(responseData?.showFilters[0]);
+    });
+
+    const newAvailableDates = Array.from(availableDatesSet).sort();
+    if (newAvailableDates.length > 0) {
+      setAvailableDates(newAvailableDates);
     }
+
+    if (responseData.showFilters.length > 0 && !selectedShowFilter) {
+      handleShowFilterChange(responseData.showFilters[0]);
+    }
+    
     handleDateChange(new Date().toISOString().split('T')[0]);
-  }, [responseData?.showtimes, responseData?.showFilters, handleDateChange]);
+  }, [responseData, handleDateChange]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      if (isTimerActive) refetch();
+      // if (isTimerActive) refetch();
     }, 10000);
   }, [isTimerActive, refetch]);
 
@@ -124,7 +187,7 @@ export default function Page() {
           {availableDates.length > 0 && (
             <DateSelector dates={availableDates} selectedDate={selectedDate} onDateChange={handleDateChange} />
           )}
-          {responseData?.showFilters && (
+          {responseData?.showFilters && responseData.showFilters.length > 0 && selectedShowFilter && (
             <ShowFilterSelector showFilters={responseData.showFilters} selectedShowFilter={selectedShowFilter} onFilterChange={handleShowFilterChange} />
           )}
           {filteredShowtimes && Object.keys(filteredShowtimes).length > 0 ? (

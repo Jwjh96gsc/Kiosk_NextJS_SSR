@@ -2,7 +2,7 @@ import { Seat } from "./Seat";
 import { SeatType } from "./SeatType";
 
 export interface SeatsResponse {
-  seats: Record<string, Seat[]>;
+  seats: Seat[];
   seatTypes: SeatType[];
   hallSponsorImage: string;
 }

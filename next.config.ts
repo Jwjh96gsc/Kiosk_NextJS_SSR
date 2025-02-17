@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'poster.gsc.com.my',
         port: '',
-        pathname: '/campaign/**',
+        pathname: '/**',
       },
     ],
   },

@@ -1,5 +1,5 @@
 export interface ShowFilter {
-    description: string;
-    keyword: string;
-    category: string;
-  }
+  Description: string;
+  Keyword: string;
+  Category: string;
+}

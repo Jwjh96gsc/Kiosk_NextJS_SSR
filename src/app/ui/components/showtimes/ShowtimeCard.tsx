@@ -28,6 +28,9 @@ export default function ShowtimeCard({ showtimes, onShowtimeError }: { showtimes
         src={firstShowtime.image || '/NotFound.jpg'}
         alt={`${firstShowtime.name} poster`}
         className="w-48 h-50 rounded-lg shadow-xl mr-8"
+        width={200}
+        height={300}
+        
       />
 
       {/* Right side: Content */}

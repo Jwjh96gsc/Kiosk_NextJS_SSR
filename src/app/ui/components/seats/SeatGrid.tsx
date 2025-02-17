@@ -12,7 +12,8 @@ export default function SeatGrid({ seats, seatTypes }: SeatGridProps) {
   // Calculate grid dimensions based on seat coordinates
   const gridColumns = Math.max(...seats.map((seat) => parseInt(seat.x, 10))) + 1;
   const gridRows = Math.max(...seats.map((seat) => parseInt(seat.y, 10))) + 1;
-
+  console.log(seats);
+  console.log(seatTypes);
   return (
     <div
       style={{

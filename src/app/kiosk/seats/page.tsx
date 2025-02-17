@@ -15,6 +15,7 @@ import { ShowtimesResponse } from "@/app/types/showtimes/ShowtimeApi";
 import { SeatsResponse } from "@/app/types/seats/SeatApi";
 import { TicketsResponse } from "@/app/types/tickets/TicketApi";
 import { selectedSeatsAtom } from "@/app/lib/atoms/selectedSeatsAtom";
+import { Seat } from "@/app/types/seats/Seat";
 
 const SeatGrid = dynamic(() => import('@/app/ui/components/seats/SeatGrid'), {
   loading: () => <p>Loading seats...</p>,
@@ -52,16 +53,72 @@ function SeatsComponent() {
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
       }
-      return res.json() as Promise<ShowtimesResponse>;
+      // Fetch the raw response
+      const rawData = await res.json();
+
+      // Transform the Showtimes array
+      const transformedShowtimes = rawData.data.Response.Body.Showtimes.map((showtime: any) => {
+        // Parse the date string in local time
+        const localDate = new Date(showtime.ShowDate);
+        
+        // Extract date components in local time
+        const year = localDate.getFullYear();
+        const month = localDate.getMonth();
+        const day = localDate.getDate();
+
+        const [hours, minutes] = [
+          parseInt(showtime.ShowTime.slice(0, 2), 10),
+          parseInt(showtime.ShowTime.slice(2), 10),
+        ];
+
+        // Create a new date in local time
+        const showDateTime = new Date(year, month, day, hours, minutes, 0);
+        
+        // Convert to ISO string without timezone offset
+        const toLocalISOString = (date: Date) => {
+          const pad = (n: number) => n < 10 ? `0${n}` : n;
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        };
+
+        return {
+          filmCode: showtime.FilmCode,
+          image: showtime.FilmPoster,
+          name: showtime.FilmName,
+          hall: showtime.HallCode,
+          hallType: showtime.HallType,
+          language: showtime.FilmLanguage,
+          showDate: toLocalISOString(localDate), // Local date without time
+          showTime: toLocalISOString(showDateTime), // Local date with time
+          showDateTime: toLocalISOString(showDateTime), // Local date with time
+          id: showtime.ShowId,
+        };
+      });
+
+      // Group showtimes by filmCode
+      const groupedShowtimes: Record<string, Showtime[]> = transformedShowtimes.reduce((acc: Record<string, Showtime[]>, showtime: Showtime) => {
+        if (!acc[showtime.filmCode]) {
+          acc[showtime.filmCode] = [];
+        }
+        acc[showtime.filmCode].push(showtime);
+        return acc;
+      }, {});
+      
+      // Transform the response to match ShowtimesResponse
+      const transformedData: ShowtimesResponse = {
+        showtimes: groupedShowtimes, // Grouped showtimes
+        showFilters: rawData.data.Response.Body.ShowFilters, // Map ShowFilters
+      };
+      return transformedData;
     },
   });
 
+  // Add memoization to selectedShowtime calculation
   const selectedShowtime = useMemo(() => {
     if (!showtimeResponseData?.showtimes || !id) return undefined;
     return Object.values(showtimeResponseData.showtimes)
       .flat()
       .find((showtime: Showtime) => showtime.id === id);
-  }, [showtimeResponseData, id]);
+  }, [showtimeResponseData?.showtimes, id]); // Use optional chaining
 
   const { data: seatResponseData, error: errorFromHallSeats, isLoading: isLoadingFromHallSeats } = useQuery<SeatsResponse, unknown>({
     queryKey: ['hallSeats', selectedShowtime?.id],
@@ -75,7 +132,7 @@ function SeatsComponent() {
         body: JSON.stringify({ 
           locationId: '268', 
           hallid: selectedShowtime.hall, 
-          showdate: selectedShowtime.showDate.split('T')[0], 
+          showdate: selectedShowtime.showDate.split('T')[0], // Directly use the date part
           showtime: new Date(selectedShowtime.showTime)
             .toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' })
             .replace(':', ''),
@@ -84,9 +141,20 @@ function SeatsComponent() {
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
       }
-      return res.json() as Promise<SeatsResponse>;
+      console.log(selectedShowtime);
+      // Fetch the raw response
+      const rawData = await res.json();
+
+      // Transform the Seats array
+      const seats = rawData.data.Response.Body.Seats;
+
+      return {
+        seats: seats.filter((seat: Seat) => seat.Type !== 'W'),
+        seatTypes: rawData.data.Response.Body.SeatTypes || [],
+        hallSponsorImage: rawData.data.Response.Body.HallSponsorImages?.[0]?.KioskImagePath || ''
+      };
     },
-    enabled: !!selectedShowtime,
+    enabled: !!selectedShowtime?.id,
   });
 
   const { data: ticketResponseData, error: errorFromTicketPricing, isLoading: isLoadingFromTicketPricing } = useQuery<TicketsResponse, unknown>({
@@ -111,7 +179,16 @@ function SeatsComponent() {
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
       }
-      return res.json() as Promise<TicketsResponse>;
+      // Fetch the raw response
+      const rawData = await res.json();
+  
+      // Transform the response to match TicketsResponse
+      const transformedData: TicketsResponse = {
+        tickets: rawData.data.Response.Body.Tickets, // Map Tickets
+        ticketSurcharges:rawData.data.Response.Body.TicketSurcharges, // Map TicketSurcharges
+      };
+  
+      return transformedData;
     },
     enabled: !!selectedShowtime,
   });
@@ -162,7 +239,7 @@ function SeatsComponent() {
           <SeatPageSkeletons />
         ) : errorFromHallSeats ? (
           <p>Error: {errorFromHallSeats instanceof Error ? errorFromHallSeats?.message : "An unexpected error occurred."}</p>
-        ) : seatResponseData?.seats ? (
+        ) : seatResponseData?.seats && seatResponseData.seats.length > 0 ? (
           <div className="flex flex-col items-center mx-auto w-full">
             {seatResponseData.hallSponsorImage && (
               <Image
@@ -174,7 +251,10 @@ function SeatsComponent() {
               />
             )}
             <div className="w-full">
-              <SeatGrid seats={Object.values(seatResponseData.seats).flat()} seatTypes={seatResponseData.seatTypes} />
+              <SeatGrid 
+                seats={seatResponseData.seats} 
+                seatTypes={seatResponseData.seatTypes || []}
+              />
             </div>
           </div>
         ) : (
