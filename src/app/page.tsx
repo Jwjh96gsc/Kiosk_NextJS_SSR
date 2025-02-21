@@ -8,7 +8,7 @@ export default function Home() {
         <div className="bg-white border-2 border-emerald-500 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col justify-center">
             <h1 className={`text-4xlfont-bold mb-4 ${styles.text_green}`}>Welcome to the Kiosk</h1>
-            <a href="/kiosk/showtimes" className={`outline outline-1 outline-offset-2 border-emerald-500 text-emerald-500 hover:text-white py-2 px-4 rounded hover:bg-emerald-500 md:w-auto ${styles.fit_content}`}>
+            <a href="/showtimes" className={`outline outline-1 outline-offset-2 border-emerald-500 text-emerald-500 hover:text-white py-2 px-4 rounded hover:bg-emerald-500 md:w-auto ${styles.fit_content}`}>
               Start
             </a>
           </div>

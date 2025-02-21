@@ -127,7 +127,9 @@ export default function Page() {
     const availableDatesSet = new Set<string>();
     Object.values(responseData.showtimes).forEach((showtimes: Showtime[]) => {
       showtimes.forEach((showtime: Showtime) => {
-        availableDatesSet.add(showtime.showDateTime.split("T")[0]);
+        if (new Date(showtime.showDateTime) > new Date()) {
+          availableDatesSet.add(showtime.showDateTime.split("T")[0]);
+        }
       });
     });
 

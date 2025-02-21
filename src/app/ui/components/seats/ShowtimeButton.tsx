@@ -15,7 +15,7 @@ export default function ShowtimeButton({ showtimes }: { showtimes: Showtime[] })
             return (
               <Link key={showtime.id} 
                 href={{
-                  pathname: `/kiosk/seats`,
+                  pathname: `/seats`,
                   query: {
                     id: showtime.id,
                     filmCode: showtime.filmCode,
